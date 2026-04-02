@@ -1,0 +1,58 @@
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[project]
+name = "assertflow"
+version = "0.1.0"
+description = "Declarative API integration and regression testing for deterministic CI workflows"
+readme = "README.md"
+requires-python = ">=3.12"
+license = { text = "MIT" }
+authors = [{ name = "AssertFlow contributors" }]
+dependencies = [
+  "httpx[http2]>=0.28,<1",
+  "jsonschema>=4.23,<5",
+  "pydantic>=2.10,<3",
+  "PyYAML>=6.0.2,<7",
+  "rich>=13.9,<15",
+  "starlette>=0.46,<1",
+  "typer>=0.15,<1",
+]
+
+[project.optional-dependencies]
+dev = [
+  "mypy>=1.14,<2",
+  "pytest>=8.3,<9",
+  "pytest-asyncio>=0.25,<2",
+  "ruff>=0.9,<1",
+]
+
+[project.scripts]
+assertflow = "assertflow.cli:app"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/assertflow"]
+
+[tool.pytest.ini_options]
+addopts = "-ra --strict-markers --strict-config"
+testpaths = ["tests"]
+asyncio_mode = "auto"
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "SIM", "RUF", "ASYNC"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+packages = ["assertflow"]
+mypy_path = "src"
+
+[[tool.mypy.overrides]]
+module = ["yaml", "jsonschema.*"]
+ignore_missing_imports = true
