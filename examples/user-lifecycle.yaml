@@ -1,0 +1,46 @@
+name: user-lifecycle
+environment: local
+
+mocks:
+  - request:
+      method: POST
+      path: /users
+      json: {username: integration-user}
+    response:
+      status: 201
+      json: {id: user-1, username: integration-user, active: true}
+    expect_calls: 1
+  - request: {method: GET, path: /users/user-1}
+    response:
+      status: 200
+      json: {id: user-1, username: integration-user, active: true}
+    expect_calls: 1
+  - request: {method: DELETE, path: /users/user-1}
+    response: {status: 204}
+    expect_calls: 1
+
+steps:
+  - name: create user
+    request:
+      method: POST
+      url: ${BASE_URL}/users
+      json: {username: "${USERNAME}"}
+    assert:
+      status: 201
+      json:
+        id: {exists: true, type: string}
+        active: true
+    extract: {user_id: body.id}
+
+  - name: read user
+    request: {method: GET, url: "${BASE_URL}/users/${user_id}"}
+    assert:
+      status: 200
+      json:
+        id: "${user_id}"
+        username: "${USERNAME}"
+
+  - name: delete user
+    request: {method: DELETE, url: "${BASE_URL}/users/${user_id}"}
+    assert: {status: 204}
+

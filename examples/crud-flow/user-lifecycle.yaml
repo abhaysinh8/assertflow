@@ -1,0 +1,74 @@
+name: user-crud-lifecycle
+
+variables:
+  base_url: http://mock
+  display_name: Ada Tester
+
+mocks:
+  - request: {method: POST, path: /users}
+    response:
+      status: 201
+      json: {id: 101, name: Ada Tester, active: true}
+    expect_calls: 1
+  - request: {method: GET, path: /users/101}
+    responses:
+      - status: 200
+        json: {id: 101, name: Ada Tester, active: true}
+      - status: 200
+        json: {id: 101, name: Ada QA, active: true}
+      - status: 404
+        json: {error: not found}
+    expect_calls: 3
+  - request: {method: PATCH, path: /users/101}
+    response:
+      status: 200
+      json: {id: 101, name: Ada QA, active: true}
+    expect_calls: 1
+  - request: {method: DELETE, path: /users/101}
+    response: {status: 204}
+    expect_calls: 1
+
+steps:
+  - name: create user
+    request:
+      method: POST
+      url: ${base_url}/users
+      json: {name: "${display_name}"}
+    assert:
+      status: 201
+      json:
+        id: {type: integer, greater_than: 0}
+        name: "${display_name}"
+    extract: {user_id: body.id}
+
+  - name: read user
+    request: {method: GET, url: "${base_url}/users/${user_id}"}
+    assert:
+      status: 200
+      json: {active: true}
+
+  - name: update user
+    request:
+      method: PATCH
+      url: ${base_url}/users/${user_id}
+      json: {name: Ada QA}
+    assert:
+      status: 200
+      json: {name: Ada QA}
+
+  - name: read updated user
+    request: {method: GET, url: "${base_url}/users/${user_id}"}
+    assert:
+      status: 200
+      json: {name: Ada QA}
+
+  - name: delete user
+    request: {method: DELETE, url: "${base_url}/users/${user_id}"}
+    assert: {status: 204}
+
+  - name: verify deletion
+    request: {method: GET, url: "${base_url}/users/${user_id}"}
+    assert:
+      status: 404
+      json: {error: {contains: not found}}
+

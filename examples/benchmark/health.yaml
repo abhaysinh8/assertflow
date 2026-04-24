@@ -1,0 +1,14 @@
+name: health-benchmark
+mocks:
+  - request: {method: GET, path: /health}
+    response:
+      status: 200
+      json: {status: ready}
+    expect_calls: 1
+steps:
+  - name: health
+    request: {method: GET, url: "http://mock/health"}
+    assert:
+      status: 200
+      json: {status: ready}
+

@@ -1,0 +1,102 @@
+name: authentication-lifecycle
+environment: local
+
+mocks:
+  - name: register endpoint
+    request: {method: POST, path: /register}
+    response:
+      status: 201
+      json: {id: user-42, username: integration-user}
+    expect_calls: 1
+
+  - name: login endpoint
+    request: {method: POST, path: /login}
+    response:
+      status: 200
+      json: {access_token: access-secret, refresh_token: refresh-secret}
+    expect_calls: 1
+
+  - name: protected endpoint
+    request: {method: GET, path: /profile}
+    responses:
+      - status: 200
+        json: {id: user-42, role: tester}
+      - status: 401
+        json: {error: token revoked}
+    expect_calls: 2
+
+  - name: refresh endpoint
+    request: {method: POST, path: /refresh}
+    response:
+      status: 200
+      json: {access_token: refreshed-secret}
+    expect_calls: 1
+
+  - name: logout endpoint
+    request: {method: POST, path: /logout}
+    response: {status: 204}
+    expect_calls: 1
+
+steps:
+  - name: register
+    request:
+      method: POST
+      url: ${BASE_URL}/register
+      json: {username: "${USERNAME}", password: "${PASSWORD}"}
+    assert:
+      status: 201
+      json:
+        id: {type: string}
+    extract:
+      user_id: body.id
+
+  - name: login
+    request:
+      method: POST
+      url: ${BASE_URL}/login
+      json: {username: "${USERNAME}", password: "${PASSWORD}"}
+    assert:
+      status: 200
+      json:
+        access_token: {exists: true, type: string}
+    extract:
+      access_token: body.access_token
+      refresh_token: body.refresh_token
+
+  - name: access protected resource
+    request:
+      method: GET
+      url: ${BASE_URL}/profile
+      headers: {Authorization: "Bearer ${access_token}"}
+    assert:
+      status: 200
+      json:
+        id: {equals: "${user_id}"}
+        role: tester
+
+  - name: refresh access token
+    request:
+      method: POST
+      url: ${BASE_URL}/refresh
+      json: {refresh_token: "${refresh_token}"}
+    assert: {status: 200}
+    extract:
+      refreshed_token: body.access_token
+
+  - name: logout
+    request:
+      method: POST
+      url: ${BASE_URL}/logout
+      headers: {Authorization: "Bearer ${refreshed_token}"}
+    assert: {status: 204}
+
+  - name: rejected revoked token
+    request:
+      method: GET
+      url: ${BASE_URL}/profile
+      headers: {Authorization: "Bearer ${refreshed_token}"}
+    assert:
+      status: 401
+      json:
+        error: {contains: revoked}
+

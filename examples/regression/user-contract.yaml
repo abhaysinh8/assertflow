@@ -1,0 +1,30 @@
+name: user-contract-regression
+
+mocks:
+  - request: {method: GET, path: /users/42}
+    response:
+      status: 200
+      headers:
+        X-API-Version: "1"
+        Date: Thu, 27 Aug 2026 10:00:00 GMT
+      json:
+        id: 42
+        role: tester
+        active: true
+        timestamp: "2026-08-27T10:00:00Z"
+
+steps:
+  - name: get user contract
+    request: {method: GET, url: "http://mock/users/42"}
+    assert:
+      status: 200
+      headers:
+        x-api-version: "1"
+      json:
+        id: {type: integer}
+        active: true
+
+regression:
+  ignore:
+    - headers.date
+    - body.timestamp

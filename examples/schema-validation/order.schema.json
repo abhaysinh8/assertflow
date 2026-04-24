@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["id", "quantity", "status"],
+  "properties": {
+    "id": {"type": "string"},
+    "quantity": {"type": "integer", "minimum": 1},
+    "status": {"enum": ["OPEN", "CANCELLED"]}
+  },
+  "additionalProperties": false
+}
+

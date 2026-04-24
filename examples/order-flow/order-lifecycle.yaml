@@ -1,0 +1,109 @@
+name: order-lifecycle
+
+variables:
+  base_url: http://mock
+  symbol: AAPL
+  quantity: 10
+
+mocks:
+  - name: login
+    request: {method: POST, path: /login}
+    response:
+      status: 200
+      json: {access_token: test-access-token}
+    expect_calls: 1
+  - name: create order
+    request: {method: POST, path: /orders}
+    response:
+      status: 201
+      json: {id: ord-1, symbol: AAPL, quantity: 10, status: OPEN}
+    expect_calls: 1
+  - name: query order
+    request: {method: GET, path: /orders/ord-1}
+    responses:
+      - status: 200
+        json: {id: ord-1, symbol: AAPL, quantity: 10, status: OPEN}
+      - status: 200
+        json: {id: ord-1, symbol: AAPL, quantity: 25, status: OPEN}
+      - status: 200
+        json: {id: ord-1, symbol: AAPL, quantity: 25, status: CANCELLED}
+    expect_calls: 3
+  - name: modify order
+    request: {method: PATCH, path: /orders/ord-1}
+    response:
+      status: 200
+      json: {id: ord-1, quantity: 25, status: OPEN}
+    expect_calls: 1
+  - name: cancel order
+    request: {method: DELETE, path: /orders/ord-1}
+    response:
+      status: 200
+      json: {id: ord-1, status: CANCELLED}
+    expect_calls: 1
+  - name: cleanup data
+    request: {method: DELETE, path: /test-data/ord-1}
+    response: {status: 204}
+    expect_calls: 1
+
+setup:
+  - name: authenticate
+    request:
+      method: POST
+      url: ${base_url}/login
+      json: {username: test-user, password: test-password}
+    assert: {status: 200}
+    extract: {token: body.access_token}
+
+steps:
+  - name: create order
+    request:
+      method: POST
+      url: ${base_url}/orders
+      headers: {Authorization: "Bearer ${token}"}
+      json: {symbol: "${symbol}", quantity: "${quantity}"}
+    assert:
+      status: 201
+      json:
+        symbol: "${symbol}"
+        quantity: {equals: "${quantity}", type: integer}
+        status: OPEN
+    extract: {order_id: body.id}
+
+  - name: fetch order
+    request: {method: GET, url: "${base_url}/orders/${order_id}"}
+    assert:
+      status: 200
+      json: {id: "${order_id}", status: OPEN}
+
+  - name: modify quantity
+    request:
+      method: PATCH
+      url: ${base_url}/orders/${order_id}
+      json: {quantity: 25}
+    assert:
+      status: 200
+      json: {quantity: 25}
+
+  - name: verify updated order
+    request: {method: GET, url: "${base_url}/orders/${order_id}"}
+    assert:
+      status: 200
+      json: {quantity: 25, status: OPEN}
+
+  - name: cancel order
+    request: {method: DELETE, url: "${base_url}/orders/${order_id}"}
+    assert:
+      status: 200
+      json: {status: CANCELLED}
+
+  - name: verify final state
+    request: {method: GET, url: "${base_url}/orders/${order_id}"}
+    assert:
+      status: 200
+      json: {status: CANCELLED}
+
+teardown:
+  - name: clean test data
+    request: {method: DELETE, url: "${base_url}/test-data/${order_id}"}
+    assert: {status: 204}
+

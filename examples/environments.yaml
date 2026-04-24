@@ -1,0 +1,10 @@
+local:
+  BASE_URL: http://mock
+  USERNAME: integration-user
+  PASSWORD: local-test-password
+
+ci:
+  BASE_URL: http://mock
+  USERNAME: ci-user
+  PASSWORD: ci-test-password
+

@@ -1,0 +1,13 @@
+name: order-schema
+mocks:
+  - request: {method: GET, path: /orders/1}
+    response:
+      status: 200
+      json: {id: ord-1, quantity: 10, status: OPEN}
+steps:
+  - name: validate order contract
+    request: {method: GET, url: "http://mock/orders/1"}
+    assert:
+      status: 200
+      schema: order.schema.json
+
